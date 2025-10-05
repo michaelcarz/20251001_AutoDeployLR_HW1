@@ -91,7 +91,7 @@ def evaluate_model(df: pd.DataFrame, slope: float, intercept: float) -> dict[str
     return {
         "MSE": mean_squared_error(y_true, y_pred),
         "MAE": mean_absolute_error(y_true, y_pred),
-        "R²": r2_score(y_true, y_pred),
+        "R^2": r2_score(y_true, y_pred),
     }
 
 
@@ -172,26 +172,26 @@ def plot_residuals(df: pd.DataFrame, slope: float, intercept: float) -> go.Figur
 
 def main() -> None:
     st.set_page_config(page_title="Linear Regression Playground", layout="wide")
-    st.title("線性回歸互動教學：y = a x + b")
+    st.title("Interactive Linear Regression Tutorial: y = a x + b")
 
-    st.sidebar.header("資料與模型參數設定")
+    st.sidebar.header("Data & Model Controls")
 
-    slope = st.sidebar.slider("斜率 a", min_value=-5.0, max_value=5.0, value=1.0, step=0.1)
+    slope = st.sidebar.slider("Slope a", min_value=-5.0, max_value=5.0, value=1.0, step=0.1)
     intercept = st.sidebar.slider(
-        "截距 b", min_value=-10.0, max_value=10.0, value=0.0, step=0.5
+        "Intercept b", min_value=-10.0, max_value=10.0, value=0.0, step=0.5
     )
     noise_std = st.sidebar.slider(
-        "雜訊標準差", min_value=0.0, max_value=5.0, value=1.0, step=0.1
+        "Noise standard deviation", min_value=0.0, max_value=5.0, value=1.0, step=0.1
     )
     n_points = st.sidebar.slider(
-        "資料點數", min_value=10, max_value=2000, value=100, step=10
+        "Number of data points", min_value=10, max_value=2000, value=100, step=10
     )
 
-    allow_outliers = st.sidebar.checkbox("加入離群點 (outliers)", value=False)
+    allow_outliers = st.sidebar.checkbox("Include outliers", value=False)
     outlier_fraction = 0.0
     if allow_outliers:
         outlier_fraction = st.sidebar.slider(
-            "離群點比例",
+            "Outlier fraction",
             min_value=0.0,
             max_value=0.3,
             value=0.05,
@@ -199,7 +199,7 @@ def main() -> None:
         )
 
     model_choice = st.sidebar.radio(
-        "模型選擇",
+        "Model selection",
         options=["Handmade (Normal Eq.)", "Handmade (GD)", "Sklearn"],
         index=0,
     )
@@ -207,22 +207,22 @@ def main() -> None:
     gd_params = {}
     if model_choice == "Handmade (GD)":
         st.sidebar.markdown(
-            "更新公式：\n"
-            "`w <- w - lr * (2/n * Σ((w*x_i + b - y_i) * x_i))`\n"
-            "`b <- b - lr * (2/n * Σ(w*x_i + b - y_i))`"
+            "Update rules:\n"
+            "`w <- w - lr * (2/n * sum((w*x_i + b - y_i) * x_i))`\n"
+            "`b <- b - lr * (2/n * sum(w*x_i + b - y_i))`"
         )
         gd_params["lr"] = st.sidebar.number_input(
-            "學習率 lr", min_value=1e-5, max_value=1.0, value=0.01, step=0.01, format="%.4f"
+            "Learning rate lr", min_value=1e-5, max_value=1.0, value=0.01, step=0.01, format="%.4f"
         )
         gd_params["n_iters"] = st.sidebar.slider(
-            "迭代次數 n_iters", min_value=100, max_value=5000, value=1000, step=100
+            "Iterations n_iters", min_value=100, max_value=5000, value=1000, step=100
         )
 
     if n_points < 2:
-        st.error("需要至少 2 筆資料點才能估計線性模型。請調整資料點數。")
+        st.error("You need at least two samples to estimate a linear model. Please increase the data points.")
         st.stop()
     if noise_std < 0:
-        st.error("雜訊標準差必須為非負數。請重新設定。")
+        st.error("Noise standard deviation must be non-negative. Please adjust the slider.")
         st.stop()
 
     data = generate_synthetic_data(
@@ -234,7 +234,7 @@ def main() -> None:
         outlier_fraction=outlier_fraction,
     )
 
-    st.subheader("資料預覽")
+    st.subheader("Data preview")
     st.write(data.head())
 
     if model_choice == "Handmade (Normal Eq.)":
@@ -252,44 +252,42 @@ def main() -> None:
 
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("真實斜率 a", f"{slope:.3f}")
-        st.metric("估計斜率 â", f"{est_slope:.3f}")
+        st.metric("True slope a", f"{slope:.3f}")
+        st.metric("Estimated slope a_hat", f"{est_slope:.3f}")
     with col2:
-        st.metric("真實截距 b", f"{intercept:.3f}")
-        st.metric("估計截距 b̂", f"{est_intercept:.3f}")
+        st.metric("True intercept b", f"{intercept:.3f}")
+        st.metric("Estimated intercept b_hat", f"{est_intercept:.3f}")
 
     metric_df = pd.DataFrame(
         {
-            "指標": ["MSE", "MAE", "R²"],
-            "數值": [metrics["MSE"], metrics["MAE"], metrics["R²"]],
+            "Metric": ["MSE", "MAE", "R^2"],
+            "Value": [metrics["MSE"], metrics["MAE"], metrics["R^2"]],
         }
     )
-    st.subheader("模型評估指標")
-    st.dataframe(metric_df.style.format({"數值": "{:.4f}"}), hide_index=True)
+    st.subheader("Model evaluation metrics")
+    st.dataframe(metric_df.style.format({"Value": "{:.4f}"}), hide_index=True)
 
-    st.subheader("資料與模型視覺化")
+    st.subheader("Data and model visualization")
     st.plotly_chart(
         plot_predictions(data, slope, intercept, est_slope, est_intercept),
         use_container_width=True,
     )
 
-    st.subheader("殘差圖 (y_true - y_pred)")
+    st.subheader("Residual plot (y_true - y_pred)")
     st.plotly_chart(plot_residuals(data, est_slope, est_intercept), use_container_width=True)
 
     if loss_history:
-        st.subheader("梯度下降 Loss 走勢")
+        st.subheader("Gradient descent loss trajectory")
         st.line_chart(loss_history)
 
-    st.subheader("教學重點")
+    st.subheader("Key learning takeaways")
     st.markdown(
-        "- 雜訊越大 (noise_std ↑) 時，資料點在真實線周圍的散佈越分散，估計的â與b̂更容易偏離真值，"
-        "也會導致 MSE/MAE 上升、R² 下降。\n"
-        "- 增加資料點數 (n_points ↑) 可降低估計的不確定性：雖然單點仍受雜訊影響，"
-        "但平均後的參數估計會更穩定，誤差指標也更可靠。\n"
-        "- 留意離群點：少量偏移即可大幅改變估計結果，建議透過殘差圖檢查異常樣本。"
+        "- Larger noise spreads the observations further from the true line, making parameter estimates and metrics less stable.\n"
+        "- Increasing the number of samples helps stabilize estimates and evaluation metrics by averaging out randomness.\n"
+        "- Outliers can dominate the fit; scan the residual plot to spot unusual points quickly."
     )
 
-    st.caption("調整側欄參數觀察，並比較不同訓練方法 (手刻閉式解、GD、Sklearn) 的行為差異。")
+    st.caption("Adjust the sidebar controls to compare the closed-form, gradient descent, and scikit-learn implementations.")
 
 
 if __name__ == "__main__":
